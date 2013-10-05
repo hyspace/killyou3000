@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<title>kill you 3000</title>
+	<style>
+		html{color:#000;background:#FFF}body,div,dl,dt,dd,ul,ol,li,h1,h2,h3,h4,h5,h6,pre,code,form,fieldset,legend,input,textarea,p,blockquote,th,td{margin:0;padding:0}table{border-collapse:collapse;border-spacing:0}fieldset,img{border:0}address,caption,cite,code,dfn,em,strong,th,var{font-style:normal;font-weight:normal}ol,ul{list-style:none}caption,th{text-align:left}h1,h2,h3,h4,h5,h6{font-size:100%;font-weight:normal}q:before,q:after{content:''}abbr,acronym{border:0;font-variant:normal}sup{vertical-align:text-top}sub{vertical-align:text-bottom}input,textarea,select{font-family:inherit;font-size:inherit;font-weight:inherit}input,textarea,select{*font-size:100%}legend{color:#000}#yui3-css-stamp.cssreset{display:none}
+		#bar{
+			position: fixed;
+			opacity: 0.3;
+			text-align: right;
+			width: 100%;
+		}
+		#bar:hover{
+			opacity: 1;
+		}
+		.words tr:nth-child(10n){
+			border-bottom: 5px solid #ccc;
+		}
+		.words tr:nth-child(even){
+			background-color: #f3f3f3;
+		}
+		.words tr.current{
+			background-color:transparent;
+		}
+		.words{
+			border: 0;
+			font: normal 20px/1.5 Helvetica;
+		}
+		.words td.label{
+			width: 280px;
+			font-size: 36px;
+			border-left: 20px solid #fff;
+		}
+		.word:nth-child(even) td.label{
+			border-color: #fcfcfc;
+		}
+		.word.hold p.translation,
+		.word.hold h2,
+		.word.hold td.label{
+			color:#c33;	
+		}
+		.word.current td.label{
+			color: #fff;
+			border-color: #fff;
+		}
+		.word.skip td.label{
+			border-color: #f3fff3;
+		}
+		.word.hold td.label{
+			border-color: #fff3f3;
+		}
+		
+		.current .main{
+			height: 668px;
+			margin-top: 100px;
+			position: relative;
+		}
+		.main{
+			margin: 20px 300px 20px 0;
+		}
+		.word h2{
+			display: none;
+			position: relative;
+			font-size: 48px;
+			margin: 20px 0;
+		}
+		.current.word h2{
+			display: inline-block;
+			font-size: 48px;
+			margin: 20px 0;
+		}
+		.word .memo{
+			color: #999;
+			display: none;
+			width: 400px;
+			font: normal 20px/30px Helvetica;
+			height: 30px;
+			border:none;
+			position: absolute;
+			right: 0;
+			top:41px;
+			-webkit-user-select:none;
+		}
+		.current .memo{
+			display: inline-block;
+		}
+		.going .current .memo{
+			display: none;
+		}
+		.meaning{
+			margin: 10px 0;
+		}
+		@-webkit-keyframes delay{
+			0%{
+				opacity: 0;
+			}
+			90%{
+				opacity: 0;
+			}
+			100%{
+				opacity: 1;
+			}
+		}
+		.going .current .meaning{
+			-webkit-animation: delay 1.8s 0 1 alternate forwards;
+			color: #000;
+		}
+		.current .meaning p{
+			opacity: 0.3;	
+		}
+		.skip.current .meaning p{
+			opacity: 1;	
+		}
+		.meaning p.translation{
+			opacity: 1;
+		}
+		.skip.word p.translation,
+		.skip.word h2,
+		.skip.word td.label{
+			opacity: 0.7;	
+		}
+		.current p.translation{
+			font-size: 24px;
+		}
+		.going .current .e{display: none}
+		.translation:first-letter{
+			color: #ccc;
+		}
+		.s{color: #5a5;}
+		.a{color: #66f;}
+		.e{color: #666;}
+		.d{color: #666;}
+		.current .prefix,
+		.current .suffix{
+			opacity: 0.7;
+		}
+		.going .current .prefix,
+		.going .current .suffix{
+			opacity: 1;
+		}
+		.fix_exp{
+			position: absolute;
+			width: 200px;
+			padding: 10px;
+			border:1px solid #666;
+			font-size:16px;
+			background: #fff;
+			bottom: 60px;
+			left: 0;
+		}
+	</style>
+
+</head>
+<body>
+	<div id="bar">skip <input value="skip" id="skip" type="checkbox"> <button id="random">random</button> Timeout: <input type="text" id="time" value="6"> <button id="go_pause">go</button></div>
+	<div id="detail"></div>
+<script src="underscore-min.js"></script>
+<script src="jquery.min.js"></script>
+<script src="L3K1.json"></script>
+<script src="prefix.json"></script>
+<script src="suffix.json"></script>
+<script src="soundjs.min.js"></script>
+<script type="text/template" id="template-tr">
+<tr word="<%= label %>" class="word<% if(localStorage.getItem(label)=='true'){ %> skip<%} else if(localStorage.getItem(label)=='false'){ %> hold<%}%>">
+	<td class="label"><%= label %></td>
+	<td class="detail">
+		<div class="main">
+			<h2 class="label"><%= label %></h2><input name="<%= label %>_memo" class="memo" type="text" value="<%= localStorage.getItem(label+'_memo') ? localStorage.getItem(label+'_memo') : '' %>"/>
+			<% _.each(meanings, function(meaning) { %>
+				<div class="meaning">
+					<p class="translation"><%= meaning.translation %></p>
+					<% if (meaning.e) {%><p class="e"><%= meaning.e %></p><% }%>
+					<% if (meaning.s) {%><p class="s"><%= meaning.s %></p><% }%>
+					<% if (meaning.a) {%><p class="a"><%= meaning.a %></p><% }%>
+					<% if (meaning.d) {%><p class="d"><%= meaning.d %></p><% }%>
+				</div>
+			<% }); %>
+		</div>
+	</td>
+</tr>
+</script>
+<script>
+	(function($){
+        $.fn.reorder = function() {
+            
+            var $this = $(this);
+            var $children = $this.children();
+            var childCount = $children.length;
+            
+
+            function randOrd(a,b) {
+                return(Math.round(Math.random())-0.5); 
+            }
+         
+            return($(this).each(function() {
+                if (childCount > 1) {
+					$children.remove();
+
+					var indices = new Array();
+					var indices1 = new Array();
+					var indices2 = new Array();
+					for (i=0;i<childCount;i++) {
+						if($children.eq(i).hasClass('hold')) {
+						    indices2.push(i);
+						}else if($children.eq(i).hasClass('skip')){
+						    indices1.push(i);
+						}else{
+							indices.push(i);
+						}
+					}
+					indices = indices.sort(randOrd);
+					indices1 = indices1.sort(randOrd);
+					indices2 = indices2.sort(randOrd);
+					$.each(indices2,function(j,k) { $this.append($children.eq(k)); });
+					$.each(indices,function(j,k) { $this.append($children.eq(k)); });
+					$.each(indices1,function(j,k) { $this.append($children.eq(k)); });
+
+                }
+            }));
+        }
+    })(jQuery)
+</script>
+<script>
+	var base = 0;
+	var num =300;
+	var time;
+	var going = false;
+	var template = _.template($("#template-tr").html());
+	var current;
+	var ifSkip = $("#skip");
+	for(var i=0;i<prefix.length;i++){prefix[i].reg = new RegExp(prefix[i].reg,'i')}
+	for(var i=0;i<suffix.length;i++){
+		suffix[i].reg = new RegExp(suffix[i].reg,'i');
+		suffix[i].prop = suffix[i].prop ? new RegExp(suffix[i].prop,'i') : undefined;
+	}
+	var prop_reg=/^\d(\s[\w\.\/]+\s)/;
+
+	$("#go_pause").click(function (e) {
+		if($(".word").length < 1)return;
+		if(going){
+			clearInterval(time);
+			going = false;
+			$("#go_pause").html('go');
+			if($(document.body).hasClass('going'))$(document.body).removeClass('going')
+		}else{
+			going = true;
+			var timeSpace = $("#time").val();
+			time = setInterval(next,timeSpace*1000);
+			$("#go_pause").html('pause');
+			if(!$(document.body).hasClass('going'))$(document.body).addClass('going')
+		}
+	})
+	$("#random").click(function (e) {
+		$(".words").reorder();
+	})
+	$("#detail").on("click",".word",function (e) {
+		if(current)current.toggleClass("current");
+		current = $(e.target).closest('.word');
+		next_do();
+		// var label = current.find('.label').html();
+
+		// play(label);
+	})
+	var $fix_exp = $("<div class='fix_exp'></div>");
+	$("#detail").on("mouseenter",".suffix",function (e) {
+		// alert(1);
+		var $el = $(e.target);
+		var index = $el.attr('index');
+		$fix_exp.html(suffix[index].desc);
+		$fix_exp.appendTo($(e.target));
+	})
+	$("#detail").on("mouseenter",".prefix",function (e) {
+		// alert(1);
+		var $el = $(e.target);
+		var index = $el.attr('index');
+		$fix_exp.html(prefix[index].desc);
+		$fix_exp.appendTo($(e.target));
+	})
+	$("#detail").on("blur",".memo",function (e) {
+		var $el = $(e.target);
+		var index = $el.attr('name');
+		localStorage.setItem(index,$el.val());
+		// alert($el.val())
+	})
+	$("#detail").on("mouseleave",".label",function (e) {
+		// alert(1);
+		$fix_exp.remove();
+	})
+	$("#detail").on('keypress','input',function (e){
+		e.stopPropagation();
+	})
+	$(document).keypress(function (e) {
+		if(event.keyCode==106){next();console.log(current.find('.translation').text().replace(/[\w\s\.,:：]*/ig,''))};	
+		if(event.keyCode==107){next(true);};
+		if(event.keyCode==104){state(1);}
+		if(event.keyCode==108){state(2);}
+		if(event.keyCode >=48 && event.keyCode <= 57){
+			change(event.keyCode -47);
+		}
+		if(event.keyCode==45){
+			change(11);
+		}
+		if(event.keyCode==32){
+			$("#go_pause").click();
+			e.preventDefault();
+		}
+		// alert(event.keyCode)
+	});
+	function state(code){
+		if(!current||current.length<1)return;
+		// console.log('h')
+		var key = current.attr('word');
+		var rem = localStorage.getItem(key);
+		if(code == 1){
+			
+			if (rem == 'true'){
+				if(current.hasClass('hold'))current.removeClass('hold');
+				if(current.hasClass('skip'))current.removeClass('skip');
+				localStorage.removeItem(key);
+			}else{
+				if(current.hasClass('hold'))current.removeClass('hold');
+				if(!current.hasClass('skip'))current.addClass('skip');
+				localStorage.setItem(key, 'true');
+			}
+		}
+		if(code == 2){
+			if (rem == 'false'){
+				if(current.hasClass('hold'))current.removeClass('hold');
+				if(current.hasClass('skip'))current.removeClass('skip');
+				localStorage.removeItem(key);
+			}else{
+				if(current.hasClass('skip'))current.removeClass('skip');
+				if(!current.hasClass('hold'))current.addClass('hold');
+				localStorage.setItem(key, 'false');
+			}
+		}
+	}
+	function change (l) {
+		l = l > L3K1.length / num + 1 ? 0 : l - 1;
+		createjs.Sound.removeAllSounds();
+		// console.log(l)
+		base = l * num;
+		var html = '<table><tbody class="words">';
+		for(var i=0;i<Math.min(num,L3K1.length - num * l);i++){
+			if(localStorage.getItem(L3K1[base+i].label) == 'false'){
+				html += template(L3K1[base+i]);
+			}
+		}
+		for(var i=0;i<Math.min(num,L3K1.length - num * l);i++){
+			if(localStorage.getItem(L3K1[base+i].label) == undefined){
+				html += template(L3K1[base+i]);
+			}
+		}
+		for(var i=0;i<Math.min(num,L3K1.length - num * l);i++){
+			if(localStorage.getItem(L3K1[base+i].label) == 'true'){
+				html += template(L3K1[base+i]);
+			}
+		}
+		html += "</tbody></table>";
+		$("#detail").empty();
+		$("#detail").html(html);
+		$(".word").each(function(index,el){
+			var word = '';
+			var res;
+			var i,o=$(el).attr('word'),suf='',pre='',suf_index=-1,pre_index=-1;
+			for(i=0;i<suffix.length;i++){
+				if(res = suffix[i].reg.exec(o)) {
+					var vaild = false;
+					if(!suffix[i].prop){
+						vaild = true;
+					}else{
+						$(el).find('.translation').each(function(index,el){
+							if(vaild)return;
+							var s = $(el).html();
+							var res;			
+							if(res = prop_reg.exec(s)){
+								if(suffix[i].prop.test(res[1])){
+									vaild = true;
+								}
+							}
+						})
+					}
+					if(!vaild)continue;
+					var oo = o.replace(suffix[i].reg,'');
+					if(oo.length < 2)continue;
+					o = oo;
+					suf = res[0];
+					suf_index = i;
+					break;
+
+				}
+			}
+			
+			for(i=0;i<prefix.length;i++){
+				if(res = prefix[i].reg.exec(o)) {
+					var oo = o.replace(prefix[i].reg,'');
+					if(oo.length < 2)continue;
+					o = oo;
+					pre = res[0];
+					// console.log(i,pre,oo);
+					pre_index = i;
+					break;
+				}
+			}
+			word += pre_index >= 0 ? '<span class="prefix" index="'+pre_index+'">' + pre + '</span>' : '';
+			word += o;
+			word += suf_index >= 0 ? '<span class="suffix" index="'+suf_index+'">' + suf + '</span>' : '';
+			$(el).find('.label').html(word);
+			$(el).find('h2').html(word);
+		})
+		current = undefined;
+	}
+	function next (prev) {
+		var words = $('.word');
+		if(current&&current.length>0){
+			var ifSkipVal = ifSkip.is(':checked');
+			current.toggleClass("current");
+			do{
+				if(prev){current = current.prev();}
+				else {current = current.next();}
+			}while(ifSkipVal && localStorage.getItem(current.find('.label').html())=='true');
+			if(prev == undefined){
+				if(current == words.eq(words.length-1) || current.length < 1){
+					if(going){
+						$("#go_pause").click();
+					}
+					return;
+				}
+			}else{
+				// console.log(current);
+				if(current == words.eq(0) || current.length < 1){
+					return;
+				}
+			}
+		}else{
+			current = words.eq(0);
+		}
+		next_do();
+	}
+	function next_do(){
+		if(going){
+			clearInterval(time);
+			var timeSpace = $("#time").val();
+			time = setInterval(next,timeSpace*1000);
+		}
+		current.toggleClass("current");
+		play(current.attr('word'));
+		$('html, body').scrollTop(current.offset().top);
+	}
+
+	// createjs.Sound.addEventListener("fileload", createjs.proxy(this.loadHandler, this));
+	// function loadHandler(event) {
+	//     // This is fired for each sound that is registered.
+	//     var instance = createjs.Sound.play("sound");  // play using id.  Could also use full sourcepath or event.src.
+	// }
+	function play(label){
+		createjs.Sound.registerSound("Webster/"+label[0]+"/"+label+".wav", label);
+		createjs.Sound.play(label);
+	}
+	play('complicated');
+</script>
+</body>
+</html>
